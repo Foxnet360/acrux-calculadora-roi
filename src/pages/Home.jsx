@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Calculator, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
+import CTAButton from '@acrux/design-tokens/components/CTAButton'
 
 // Configuración de la calculadora
 const SECTORES = [
