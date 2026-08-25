@@ -1,0 +1,19 @@
+# API Security
+RewriteEngine On
+
+# Block access to .php files directly (optional - handled by main .htaccess)
+# <FilesMatch "\.php$">
+#     Order Deny,Allow
+#     Deny from all
+# </FilesMatch>
+
+# Security Headers for API
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "DENY"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# CORS for API (configure properly for production)
+Header always set Access-Control-Allow-Origin "https://acrux.life"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+Header always set Access-Control-Max-Age "86400"
