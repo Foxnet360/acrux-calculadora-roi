@@ -1,0 +1,29 @@
+# SPA Fallback for React Router
+RewriteEngine On
+RewriteBase /calculadora-roi/
+
+# Handle API routes
+RewriteRule ^api/ - [L]
+
+# Serve static files directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Fallback to index.html for client-side routing
+RewriteRule ^ index.html [L]
+
+# Security Headers
+Header always set X-Frame-Options "DENY"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Cache static assets
+<FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$">
+  Header set Cache-Control "max-age=31536000, immutable"
+</FilesMatch>
+
+# PHP Configuration for API
+<FilesMatch "\.php$">
+  SetHandler application/x-httpd-php
+</FilesMatch>
