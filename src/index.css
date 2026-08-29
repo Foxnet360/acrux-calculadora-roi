@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@acrux/design-tokens/theme.css";
 
 @theme {
   --color-primary: #1B2A4A;

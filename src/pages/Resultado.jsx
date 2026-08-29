@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp, DollarSign, Clock, Target, ArrowLeft, Download, Share2, Calculator, Users, Building2 } from 'lucide-react'
+import CTAButton from '@acrux/design-tokens/components/CTAButton'
 
 const formatCurrency = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(num)
 const formatNumber = (num) => new Intl.NumberFormat('es-CO').format(num)
@@ -13,6 +14,7 @@ export default function Resultado() {
     const data = sessionStorage.getItem('acrux_calculadora_roi_resultado')
     if (data) {
       setResultado(JSON.parse(data))
+      localStorage.setItem('lm-calculadora-roi-completed', 'true')
     }
     setLoading(false)
   }, [])

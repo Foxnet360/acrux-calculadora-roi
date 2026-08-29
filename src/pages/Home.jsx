@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Calculator, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
+import { AcruxApiClient } from '@acrux/api-client'
+import CTAButton from '@acrux/design-tokens/components/CTAButton'
 
 // Configuración de la calculadora
 const SECTORES = [
@@ -109,14 +111,27 @@ export default function Home() {
       const resultado = calcularROI(formData)
       if (!resultado) throw new Error('Error en cálculo')
 
-      // Enviar a API backend
-      const response = await fetch('/calculadora-roi/api/calculate.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, ...resultado }),
-      })
-
-      if (!response.ok) throw new Error('Error en servidor')
+      // Enviar a API unificada backend
+      try {
+        const client = new AcruxApiClient();
+        await client.submitLead({
+          email: formData.email,
+          product: 'calculadora-roi',
+          score: resultado.roiPorcentual,
+          profile: resultado.sector,
+          answers: {
+            tamano: formData.tamano,
+            problema: formData.problema,
+            inversion: formData.inversion,
+            ahorroAnual: resultado.ahorroAnual,
+            paybackMeses: resultado.paybackMeses,
+            montoInversion: resultado.montoInversion,
+          },
+          gdpr_consent: formData.consent,
+        });
+      } catch (apiErr) {
+        console.warn('API sync warning (continuing with local calculation display):', apiErr);
+      }
 
       // Guardar en sessionStorage para página de resultados
       sessionStorage.setItem('acrux_calculadora_roi_resultado', JSON.stringify(resultado))
