@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: process.env.NODE_ENV === 'production' ? '/calculadora-roi/' : '/',
+  base: '/calculadora-roi/',
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -23,5 +23,11 @@ export default defineConfig({
   server: {
     port: 5176,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   }
 })
