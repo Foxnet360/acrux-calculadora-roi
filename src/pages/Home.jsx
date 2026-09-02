@@ -1,414 +1,385 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Calculator, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
-import { AcruxApiClient } from '@acrux/api-client'
-import CTAButton from '@acrux/design-tokens/components/CTAButton'
+import { useState, useId } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Calculator, TrendingUp, Users, DollarSign, Clock, ShieldCheck, ArrowRight, Sparkles, Building2, HelpCircle } from 'lucide-react';
+import { AcruxApiClient } from '@acrux/api-client';
 
-// Configuración de la calculadora
 const SECTORES = [
   { value: 'tecnologia', label: 'Tecnología / Software', factor: 1.4 },
-  { value: 'servicios', label: 'Servicios Profesionales', factor: 1.3 },
-  { value: 'manufactura', label: 'Manufactura / Industrial', factor: 1.2 },
+  { value: 'servicios', label: 'Servicios Profesionales / Consultoría', factor: 1.3 },
+  { value: 'finanzas', label: 'Finanzas / Banca / Seguros', factor: 1.45 },
   { value: 'salud', label: 'Salud / Farmacéutica', factor: 1.35 },
-  { value: 'finanzas', label: 'Finanzas / Seguros', factor: 1.45 },
+  { value: 'manufactura', label: 'Manufactura / Industrial', factor: 1.2 },
   { value: 'retail', label: 'Retail / Consumo', factor: 1.15 },
-  { value: 'educacion', label: 'Educación / ONG', factor: 1.1 },
-  { value: 'otro', label: 'Otro', factor: 1.0 },
-]
+  { value: 'otro', label: 'Otro Sector', factor: 1.0 },
+];
 
-const TAMANOS = [
-  { value: 'pequena', label: 'Pequeña (1-50 empleados)', multiplicador: 1, empleados: 25 },
-  { value: 'mediana', label: 'Mediana (51-250 empleados)', multiplicador: 3, empleados: 125 },
-  { value: 'grande', label: 'Grande (251-1000 empleados)', multiplicador: 8, empleados: 500 },
-  { value: 'empresa', label: 'Empresa (1000+ empleados)', multiplicador: 20, empleados: 2500 },
-]
-
-const PROBLEMAS = [
-  { value: 'rotacion', label: 'Alta rotación de talento', costoBase: 0.15 },
-  { value: 'productividad', label: 'Baja productividad/engagement', costoBase: 0.12 },
-  { value: 'liderazgo', label: 'Brechas de liderazgo', costoBase: 0.18 },
-  { value: 'cultura', label: 'Cultura tóxica / desalineada', costoBase: 0.22 },
-  { value: 'cambio', label: 'Resistencia al cambio / transformación fallida', costoBase: 0.20 },
-  { value: 'bienestar', label: 'Burnout / bajo bienestar', costoBase: 0.16 },
-]
-
-const INVERSIONES = [
-  { value: 'diagnostico', label: 'Solo Diagnóstico (DIGITAL-H / PULSO-H)', monto: 15000, duracion: '2-3 semanas' },
-  { value: 'piloto', label: 'Piloto 1 área / equipo', monto: 45000, duracion: '3 meses' },
-  { value: 'programa', label: 'Programa integral transformación', monto: 120000, duracion: '6-12 meses' },
-  { value: 'enterprise', label: 'Transformación enterprise multi-país', monto: 350000, duracion: '12-24 meses' },
-]
+const RIESGOS = [
+  { value: 'bajo', label: '🟢 Bajo (Rotación ~8%)', factor: 0.10, desc: 'Fugas esporádicas de talento.' },
+  { value: 'moderado', label: '🟡 Moderado (Rotación ~18%)', factor: 0.18, desc: 'Desgaste y rotación frecuente en áreas clave.' },
+  { value: 'severo', label: '🔴 Severo (Rotación ~32%)', factor: 0.28, desc: 'Burnout elevado y pérdidas continuas de talento.' },
+];
 
 export default function Home() {
-  const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    sector: '',
-    tamano: '',
-    problema: '',
-    inversion: '',
-    email: '',
-    consent: false,
-  })
-  const [errors, setErrors] = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const navigate = useNavigate();
+  const emailInputId = useId();
+  const consentCheckboxId = useId();
 
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }))
-  }
+  // Interactive Live State
+  const [numEmpleados, setNumEmpleados] = useState(100);
+  const [salarioMensual, setSalarioMensual] = useState(2500); // USD/month
+  const [sectorValue, setSectorValue] = useState('tecnologia');
+  const [riesgoValue, setRiesgoValue] = useState('moderado');
+
+  const [email, setEmail] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Live Math Calculations
+  const sector = SECTORES.find(s => s.value === sectorValue) || SECTORES[0];
+  const riesgo = RIESGOS.find(r => r.value === riesgoValue) || RIESGOS[1];
+
+  const masaSalarialAnual = numEmpleados * salarioMensual * 12;
+  const costoOcultoAnual = Math.round(masaSalarialAnual * riesgo.factor * sector.factor);
+  const ahorroAnualProyectado = Math.round(costoOcultoAnual * 0.38); // 38% recovery with ACRUX methodology
+
+  // Estimated ACRUX investment
+  const montoInversionEst = Math.round(numEmpleados <= 50 ? 18000 : numEmpleados <= 250 ? 45000 : 120000);
+  const roiPorcentualEst = Math.round(((ahorroAnualProyectado - montoInversionEst) / montoInversionEst) * 100);
+  const paybackMesesEst = parseFloat((montoInversionEst / (ahorroAnualProyectado / 12)).toFixed(1));
+
+  // Factor breakdown for live visual chart
+  const costoRotacion = Math.round(costoOcultoAnual * 0.45);
+  const costoAusentismo = Math.round(costoOcultoAnual * 0.30);
+  const costoProductividad = Math.round(costoOcultoAnual * 0.25);
+
+  const formatCurrency = (num) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
 
   const validate = () => {
-    const newErrors = {}
-    if (!formData.sector) newErrors.sector = 'Selecciona tu sector'
-    if (!formData.tamano) newErrors.tamano = 'Selecciona el tamaño de tu organización'
-    if (!formData.problema) newErrors.problema = 'Selecciona el problema principal'
-    if (!formData.inversion) newErrors.inversion = 'Selecciona el tipo de inversión'
-    if (!formData.email) newErrors.email = 'Email requerido para enviar resultados'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Email inválido'
-    if (!formData.consent) newErrors.consent = 'Debes aceptar la política de privacidad'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const calcularROI = (data) => {
-    const sector = SECTORES.find(s => s.value === data.sector)
-    const tamano = TAMANOS.find(t => t.value === data.tamano)
-    const problema = PROBLEMAS.find(p => p.value === data.problema)
-    const inversion = INVERSIONES.find(i => i.value === data.inversion)
-
-    if (!sector || !tamano || !problema || !inversion) return null
-
-    // Cálculo simplificado de ROI
-    const salarioPromedio = 45000 // USD/año
-    const costoProblemaAnual = tamano.empleados * salarioPromedio * problema.costoBase * sector.factor
-    const ahorroAnual = costoProblemaAnual * 0.35 // Asumimos 35% de mejora
-    const roiPorcentual = ((ahorroAnual - inversion.monto) / inversion.monto) * 100
-    const paybackMeses = (inversion.monto / (ahorroAnual / 12)).toFixed(1)
-
-    return {
-      sector: sector.label,
-      tamano: tamano.label,
-      problema: problema.label,
-      inversion: inversion.label,
-      montoInversion: inversion.monto,
-      duracion: inversion.duracion,
-      empleados: tamano.empleados,
-      costoProblemaAnual: Math.round(costoProblemaAnual),
-      ahorroAnual: Math.round(ahorroAnual),
-      roiPorcentual: Math.round(roiPorcentual),
-      paybackMeses: parseFloat(paybackMeses),
-      factorSector: sector.factor,
-    }
-  }
+    const newErrors = {};
+    if (!email) newErrors.email = 'Ingresá tu email para recibir la auditoría en PDF';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Formato de correo inválido';
+    if (!consent) newErrors.consent = 'Debes aceptar la política de privacidad';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!validate()) return
+    e.preventDefault();
+    if (!validate()) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
+
+    const resultado = {
+      sector: sector.label,
+      empleados: numEmpleados,
+      salarioMensual,
+      montoInversion: montoInversionEst,
+      duracion: numEmpleados <= 50 ? '3 meses' : '6 a 12 meses',
+      costoProblemaAnual: costoOcultoAnual,
+      ahorroAnual: ahorroAnualProyectado,
+      roiPorcentual: roiPorcentualEst,
+      paybackMeses: paybackMesesEst,
+      costoRotacion,
+      costoAusentismo,
+      costoProductividad,
+      email,
+    };
 
     try {
-      const resultado = calcularROI(formData)
-      if (!resultado) throw new Error('Error en cálculo')
-
-      // Enviar a API unificada backend
-      try {
-        const client = new AcruxApiClient();
-        await client.submitLead({
-          email: formData.email,
-          product: 'calculadora-roi',
-          score: resultado.roiPorcentual,
-          profile: resultado.sector,
-          answers: {
-            tamano: formData.tamano,
-            problema: formData.problema,
-            inversion: formData.inversion,
-            ahorroAnual: resultado.ahorroAnual,
-            paybackMeses: resultado.paybackMeses,
-            montoInversion: resultado.montoInversion,
-          },
-          gdpr_consent: formData.consent,
-        });
-      } catch (apiErr) {
-        console.warn('API sync warning (continuing with local calculation display):', apiErr);
-      }
-
-      // Guardar en sessionStorage para página de resultados
-      sessionStorage.setItem('acrux_calculadora_roi_resultado', JSON.stringify(resultado))
-      sessionStorage.setItem('acrux_calculadora_roi_completed', 'true')
-
-      navigate('/resultado')
-    } catch (error) {
-      console.error('Error:', error)
-      setErrors({ submit: 'Error al procesar. Intenta de nuevo o contáctanos directamente.' })
-    } finally {
-      setIsSubmitting(false)
+      const client = new AcruxApiClient();
+      await client.submitLead({
+        email,
+        product: 'calculadora-roi',
+        score: roiPorcentualEst,
+        profile: sector.label,
+        answers: {
+          empleados: numEmpleados,
+          salarioMensual,
+          ahorroAnual: ahorroAnualProyectado,
+          paybackMeses: paybackMesesEst,
+          montoInversion: montoInversionEst,
+        },
+        gdpr_consent: consent,
+      });
+    } catch (apiErr) {
+      console.warn('API sync fallback:', apiErr);
     }
-  }
 
-  const formatCurrency = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(num)
+    sessionStorage.setItem('acrux_calculadora_roi_resultado', JSON.stringify(resultado));
+    sessionStorage.setItem('acrux_calculadora_roi_completed', 'true');
+
+    navigate('/resultado');
+  };
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="bg-primary text-white py-20 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary/50" />
-        <div className="absolute inset-0 opacity-5">
-          <svg className="w-full h-full" viewBox="0 0 1200 600" preserveAspectRatio="none">
-            <defs>
-              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" stroke-width="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-primary text-sm font-bold rounded-full mb-6">
-              <Calculator className="w-4 h-4" />
-              Lead Magnet ACRUX
-            </span>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              Calculadora de ROI
-              <br />
-              <span className="text-accent">Transformación Organizacional</span>
-            </h1>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl">
-              Descubre cuánto puedes ahorrar y el retorno de inversión de transformar tu cultura organizacional con la metodología ACRUX. Basado en 20+ años de Psicología y Trabajo Social aplicados a empresas.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => document.getElementById('calculadora').scrollIntoView({ behavior: 'smooth' })}
-                className="bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
-              >
-                Calcular mi ROI <ArrowRight className="w-5 h-5" />
-              </button>
-              <Link
-                to="https://acrux.life/contacto"
-                className="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-              >
-                Hablar con un experto
-              </Link>
-            </div>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Hero Header */}
+      <section className="bg-gradient-to-br from-[#0D111A] via-[#1B2A4A] to-[#0D111A] text-white py-16 sm:py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto text-center space-y-6 relative z-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/15 border border-accent/30 text-accent font-bold text-xs uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" />
+            Simulador Financiero de Retorno • Metodología ACRUX
           </div>
+
+          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
+            Cuantificá el <span className="text-accent underline decoration-accent/50">costo oculto del desgaste</span> y calculá tu ROI
+          </h1>
+
+          <p className="text-base sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            Visualizá en tiempo real las pérdidas asociadas a rotación, ausentismo y falta de alineación, y descubrí el ahorro financiero proyectado al transformar la cultura de tu organización.
+          </p>
         </div>
       </section>
 
-      {/* Calculadora */}
-      <section id="calculadora" className="py-16 md:py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
-            {/* Formulario */}
-            <div className="bg-white rounded-2xl shadow-soft p-8 sticky top-24">
-              <h2 className="font-display text-2xl font-bold text-primary mb-2">Calcula tu ROI</h2>
-              <p className="text-secondary mb-8">Completa 4 pasos rápidos y recibe tu análisis personalizado por email.</p>
+      {/* Main Interactive Calculator Area */}
+      <section id="calculadora" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Interactive Inputs (7 cols) */}
+            <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200/80 space-y-8 text-left">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="font-display text-2xl font-bold text-slate-900 flex items-center gap-2">
+                  <Calculator className="w-6 h-6 text-primary-600" />
+                  Parámetros de tu Organización
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Ajustá los controles interactivos para simular el impacto en tiempo real.
+                </p>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                {/* Paso 1: Sector */}
-                <fieldset>
-                  <legend className="font-display text-lg font-bold text-primary mb-4 flex items-center gap-2">
-                    <span className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                    Sector de tu organización
-                  </legend>
-                  <select
-                    value={formData.sector}
-                    onChange={(e) => handleChange('sector', e.target.value)}
-                    className="calculator-select"
-                    aria-invalid={!!errors.sector}
-                  >
-                    <option value="">Selecciona tu sector</option>
-                    {SECTORES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
-                  {errors.sector && <p className="text-red-500 text-sm mt-1">{errors.sector}</p>}
-                </fieldset>
-
-                {/* Paso 2: Tamaño */}
-                <fieldset>
-                  <legend className="font-display text-lg font-bold text-primary mb-4 flex items-center gap-2">
-                    <span className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                    Tamaño de tu organización
-                  </legend>
-                  <select
-                    value={formData.tamano}
-                    onChange={(e) => handleChange('tamano', e.target.value)}
-                    className="calculator-select"
-                    aria-invalid={!!errors.tamano}
-                  >
-                    <option value="">Selecciona el tamaño</option>
-                    {TAMANOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                  {errors.tamano && <p className="text-red-500 text-sm mt-1">{errors.tamano}</p>}
-                </fieldset>
-
-                {/* Paso 3: Problema */}
-                <fieldset>
-                  <legend className="font-display text-lg font-bold text-primary mb-4 flex items-center gap-2">
-                    <span className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
-                    Principal problema a resolver
-                  </legend>
-                  <select
-                    value={formData.problema}
-                    onChange={(e) => handleChange('problema', e.target.value)}
-                    className="calculator-select"
-                    aria-invalid={!!errors.problema}
-                  >
-                    <option value="">Selecciona el problema</option>
-                    {PROBLEMAS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                  </select>
-                  {errors.problema && <p className="text-red-500 text-sm mt-1">{errors.problema}</p>}
-                </fieldset>
-
-                {/* Paso 4: Inversión */}
-                <fieldset>
-                  <legend className="font-display text-lg font-bold text-primary mb-4 flex items-center gap-2">
-                    <span className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">4</span>
-                    Nivel de inversión esperado
-                  </legend>
-                  <select
-                    value={formData.inversion}
-                    onChange={(e) => handleChange('inversion', e.target.value)}
-                    className="calculator-select"
-                    aria-invalid={!!errors.inversion}
-                  >
-                    <option value="">Selecciona nivel de inversión</option>
-                    {INVERSIONES.map(i => (
-                      <option key={i.value} value={i.value}>
-                        {i.label} — {formatCurrency(i.monto)} ({i.duracion})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.inversion && <p className="text-red-500 text-sm mt-1">{errors.inversion}</p>}
-                </fieldset>
-
-                {/* Email */}
-                <fieldset>
-                  <legend className="font-display text-lg font-bold text-primary mb-4">Email para recibir resultados</legend>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
-                    placeholder="tu@email.com"
-                    className="calculator-input"
-                    aria-invalid={!!errors.email}
-                  />
-                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                </fieldset>
-
-                {/* Consentimiento */}
-                <fieldset>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.consent}
-                      onChange={(e) => handleChange('consent', e.target.checked)}
-                      className="mt-1 w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2"
-                      aria-invalid={!!errors.consent}
-                    />
-                    <div className="text-sm text-secondary">
-                      Acepto la <Link to="https://acrux.life/privacidad" className="underline hover:text-primary" target="_blank" rel="noopener">Política de Privacidad</Link> y autorizo a ACRUX Consultores a contactarme con los resultados y contenido relacionado.
-                    </div>
+              {/* Slider 1: Número de Empleados */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-primary-600" />
+                    Número de Colaboradores
                   </label>
-                  {errors.consent && <p className="text-red-500 text-sm mt-1">{errors.consent}</p>}
-                </fieldset>
+                  <span className="text-base font-black text-primary-700 font-mono bg-primary-50 px-3 py-1 rounded-xl border border-primary-100">
+                    {numEmpleados} empleados
+                  </span>
+                </div>
 
-                {errors.submit && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm" role="alert">
-                    {errors.submit}
-                  </div>
-                )}
+                <input
+                  type="range"
+                  min="10"
+                  max="1000"
+                  step="10"
+                  value={numEmpleados}
+                  onChange={(e) => setNumEmpleados(Number(e.target.value))}
+                  className="w-full accent-primary-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                />
+
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">Presets rápidos:</span>
+                  {[25, 100, 250, 500].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setNumEmpleados(preset)}
+                      className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition-all ${
+                        numEmpleados === preset
+                          ? 'bg-primary-600 text-white border-primary-600 shadow-xs'
+                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                      }`}
+                    >
+                      {preset} emp
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Slider 2: Salario Promedio Mensual */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
+                    <DollarSign className="w-4 h-4 text-primary-600" />
+                    Salario Promedio Mensual (USD)
+                  </label>
+                  <span className="text-base font-black text-primary-700 font-mono bg-primary-50 px-3 py-1 rounded-xl border border-primary-100">
+                    {formatCurrency(salarioMensual)} / mes
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="1000"
+                  max="8000"
+                  step="250"
+                  value={salarioMensual}
+                  onChange={(e) => setSalarioMensual(Number(e.target.value))}
+                  className="w-full accent-primary-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                />
+              </div>
+
+              {/* Selector 3: Nivel de Rotación y Desgaste */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-primary-600" />
+                  Nivel de Rotación &amp; Burnout Estimado
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {RIESGOS.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setRiesgoValue(r.value)}
+                      className={`p-3.5 rounded-2xl border text-left transition-all ${
+                        riesgoValue === r.value
+                          ? 'bg-primary-50 border-primary-500 shadow-sm ring-1 ring-primary-500'
+                          : 'bg-slate-50 border-slate-200/80 hover:bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-slate-900 mb-1">{r.label}</div>
+                      <div className="text-[11px] text-slate-500 leading-tight">{r.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selector 4: Sector Industrial */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-primary-600" />
+                  Sector Industrial
+                </label>
+                <select
+                  value={sectorValue}
+                  onChange={(e) => setSectorValue(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 outline-hidden focus:ring-2 focus:ring-primary-500"
+                >
+                  {SECTORES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lead Capture Form for Full PDF Audit */}
+              <form onSubmit={handleSubmit} className="pt-6 border-t border-slate-100 space-y-4" noValidate>
+                <div className="space-y-1.5">
+                  <label htmlFor={emailInputId} className="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">
+                    Correo Corporativo para Generar Informe PDF *
+                  </label>
+                  <input
+                    id={emailInputId}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tu.nombre@empresa.com"
+                    className="w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-900 outline-hidden focus:ring-2 focus:ring-primary-500"
+                  />
+                  {errors.email && <p className="text-xs text-red-500 font-medium">{errors.email}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor={consentCheckboxId} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      id={consentCheckboxId}
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      className="w-4 h-4 rounded-md accent-primary-600"
+                    />
+                    <span className="text-xs text-slate-600">
+                      Acepto la <a href="https://acrux.life/privacidad" target="_blank" rel="noopener noreferrer" className="underline font-bold text-slate-800">Política de Privacidad</a> y tratamiento de datos.
+                    </span>
+                  </label>
+                  {errors.consent && <p className="text-xs text-red-500 font-medium">{errors.consent}</p>}
+                </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-accent hover:bg-accent-dark text-primary-900 font-black text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      Calculando...
-                    </>
-                  ) : (
-                    <>
-                      <Calculator className="w-5 h-5" />
-                      Calcular mi ROI y recibir resultados
-                    </>
-                  )}
+                  <span>{isSubmitting ? 'Generando Auditoría PDF...' : 'Obtener Informe Completo en PDF & Diagnóstico'}</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
-
-                <p className="text-xs text-center text-secondary/60">
-                  Tus datos son confidenciales. No hacemos spam. Puedes darte de baja en cualquier momento.
-                </p>
               </form>
             </div>
 
-            {/* Beneficios / Preview */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl shadow-soft p-8 border-t-4 border-accent">
-                <h3 className="font-display text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-accent" />
-                  Qué incluye tu análisis ROI
-                </h3>
-                <ul className="space-y-4">
-                  {[
-                    { icon: Calculator, title: 'Costo actual del problema', desc: 'Cuánto te cuesta anualmente no resolverlo (rotación, productividad, cultura)' },
-                    { icon: TrendingUp, title: 'Ahorro potencial estimado', desc: 'Basado en benchmarks de 35% mejora post-transformación ACRUX' },
-                    { icon: Target, title: 'ROI porcentual y payback', desc: 'Cuándo recuperas la inversión y rentabilidad total a 12/24/36 meses' },
-                    { icon: Users, title: 'Comparativa por sector/tamaño', desc: 'Benchmarking contra organizaciones similares a la tuya' },
-                  ].map((item, i) => (
-                    <li key={i} className="flex gap-4">
-                      <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <item.icon className="w-6 h-6 text-accent" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-primary">{item.title}</h4>
-                        <p className="text-secondary text-sm">{item.desc}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+            {/* Right Column: Live Calculation Dashboard (5 cols) */}
+            <div className="lg:col-span-5 space-y-6 sticky top-24">
+              {/* Cost & Savings Summary Box */}
+              <div className="bg-gradient-to-br from-[#0D111A] via-[#1B2A4A] to-[#0D111A] text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-accent/30 space-y-6 text-left relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-accent font-mono">
+                    💸 Pérdida Anual Oculta Estimada
+                  </span>
+                  <div className="text-3xl sm:text-4xl font-black text-red-400 font-mono tracking-tight">
+                    {formatCurrency(costoOcultoAnual)}
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Costo estimado en pérdidas por rotación, ausentismo y desalineación en {numEmpleados} colaboradores.
+                  </p>
+                </div>
+
+                {/* Savings & ROI Pill */}
+                <div className="bg-white/10 border border-white/15 rounded-2xl p-5 space-y-3 backdrop-blur-xs">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div>
+                      <span className="text-[11px] font-bold text-accent uppercase font-mono">Ahorro Anual Proyectado</span>
+                      <div className="text-2xl font-black text-emerald-400 font-mono">{formatCurrency(ahorroAnualProyectado)}</div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[11px] font-bold text-slate-300 uppercase font-mono">ROI Proyectado</span>
+                      <div className="text-2xl font-black text-accent font-mono">+{roiPorcentualEst}%</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-300 font-mono">
+                    <span>⏱️ Payback de Inversión:</span>
+                    <strong className="text-white font-bold">{paybackMesesEst} meses</strong>
+                  </div>
+                </div>
+
+                {/* Factor Breakdown List */}
+                <div className="space-y-2.5 pt-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Desglose Estimado de Pérdidas:
+                  </span>
+
+                  <div className="space-y-2">
+                    <div className="bg-white/5 p-2.5 rounded-xl flex items-center justify-between text-xs border border-white/10">
+                      <span className="text-slate-300 font-medium">• Reemplazo &amp; Rotación de Personal</span>
+                      <span className="font-mono font-bold text-white">{formatCurrency(costoRotacion)}</span>
+                    </div>
+
+                    <div className="bg-white/5 p-2.5 rounded-xl flex items-center justify-between text-xs border border-white/10">
+                      <span className="text-slate-300 font-medium">• Desgaste, Ausentismo &amp; Salud</span>
+                      <span className="font-mono font-bold text-white">{formatCurrency(costoAusentismo)}</span>
+                    </div>
+
+                    <div className="bg-white/5 p-2.5 rounded-xl flex items-center justify-between text-xs border border-white/10">
+                      <span className="text-slate-300 font-medium">• Brechas de Liderazgo &amp; Productividad</span>
+                      <span className="font-mono font-bold text-white">{formatCurrency(costoProductividad)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-gradient-to-br from-primary to-secondary text-white rounded-2xl p-8">
-                <h3 className="font-display text-xl font-bold mb-4">¿Por qué ACRUX?</h3>
-                <ul className="space-y-2 text-white/90">
-                  <li className="flex items-center gap-2">✓ Metodología validada en 50+ organizaciones</li>
-                  <li className="flex items-center gap-2">✓ Equipo: Psicología + Trabajo Social + Negocio</li>
-                  <li className="flex items-center gap-2">✓ 20+ años experiencia transformación cultural</li>
-                  <li className="flex items-center gap-2">✓ Herramientas propias: DIGITAL-H, PULSO-H</li>
-                  <li className="flex items-center gap-2">✓ Medición de impacto real, no vanity metrics</li>
-                </ul>
+              {/* Reassurance Card */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-md text-left space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-primary-700 uppercase tracking-wider font-mono">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Garantía Metodológica ACRUX
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Basado en modelos econométricos validados de Retorno de Inversión en Capital Humano (ROI-HC) y marcos de salud ocupacional de la OMS y MBI-HSS.
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Final */}
-      <section className="bg-primary text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">¿Listo para transformar tu organización?</h2>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            La calculadora es solo el inicio. Agenda una sesión estratégica gratuita para validar tus números y diseñar tu hoja de ruta.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="https://calendly.com/acrux-consultores"
-              className="bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-colors"
-              target="_blank"
-              rel="noopener"
-            >
-              Agendar sesión estratégica
-            </Link>
-            <Link
-              to="https://acrux.life/contacto"
-              className="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/10 transition-colors"
-            >
-              Contactar directamente
-            </Link>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }

@@ -1,349 +1,274 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { TrendingUp, DollarSign, Clock, Target, ArrowLeft, Download, Share2, Calculator, Users, Building2 } from 'lucide-react'
-import CTAButton from '@acrux/design-tokens/components/CTAButton'
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { TrendingUp, DollarSign, Clock, Target, ArrowLeft, Download, Calculator, Users, Building2, ShieldCheck, User } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-const formatCurrency = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(num)
-const formatNumber = (num) => new Intl.NumberFormat('es-CO').format(num)
+const formatCurrency = (num) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num || 0);
 
 export default function Resultado() {
-  const [resultado, setResultado] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate();
+  const [resultado, setResultado] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
-    const data = sessionStorage.getItem('acrux_calculadora_roi_resultado')
+    const data = sessionStorage.getItem('acrux_calculadora_roi_resultado');
     if (data) {
-      setResultado(JSON.parse(data))
-      localStorage.setItem('lm-calculadora-roi-completed', 'true')
+      setResultado(JSON.parse(data));
+      localStorage.setItem('lm-calculadora-roi-completed', 'true');
     }
-    setLoading(false)
-  }, [])
+    setLoading(false);
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-600 border-t-transparent" />
       </div>
-    )
+    );
   }
 
   if (!resultado) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="text-center max-w-md">
-          <Calculator className="w-16 h-16 text-primary/30 mx-auto mb-6" />
-          <h2 className="font-display text-2xl font-bold text-primary mb-4">No hay resultados</h2>
-          <p className="text-secondary mb-6">Complete la calculadora para ver su análisis ROI personalizado.</p>
-          <Link to="/" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-bold hover:bg-primary/90 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            Volver a la calculadora
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 font-sans">
+        <div className="text-center max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-200">
+          <Calculator className="w-16 h-16 text-primary-300 mx-auto mb-4" />
+          <h2 className="font-display text-2xl font-bold text-slate-900 mb-2">No hay cálculo disponible</h2>
+          <p className="text-slate-600 mb-6 text-sm">Ingresá los parámetros de tu empresa en el simulador para generar el reporte.</p>
+          <Link to="/" className="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 transition-colors text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver a la calculadora</span>
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const roiColor = resultado.roiPorcentual >= 100 ? 'text-green-600' : resultado.roiPorcentual >= 0 ? 'text-accent' : 'text-red-600'
-  const roiBg = resultado.roiPorcentual >= 100 ? 'bg-green-50 border-green-200' : resultado.roiPorcentual >= 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
+  const downloadPDFReport = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 16;
+
+      const NAVY = [13, 17, 26];
+      const PRIMARY = [46, 134, 171];
+      const GOLD = [245, 166, 35];
+      const SLATE = [100, 116, 139];
+
+      // Header
+      doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
+      doc.rect(0, 22, pageWidth, 1, 'F');
+
+      doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ACRUX ✦', margin, 14);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Auditoría Financiera de ROI en Transformación Cultural', pageWidth - margin, 12, { align: 'right' });
+
+      doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Metodología Organizacional ACRUX', pageWidth - margin, 17, { align: 'right' });
+
+      let y = 30;
+
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Reporte de Proyección de Retorno ROI', margin, y);
+
+      y += 6;
+      doc.setTextColor(PRIMARY[0], PRIMARY[1], PRIMARY[2]);
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Sector: ${resultado.sector} • ${resultado.empleados} colaboradores`, margin, y);
+
+      y += 8;
+
+      // KPI Card
+      doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.roundedRect(margin, y, pageWidth - margin * 2, 30, 3, 3, 'F');
+
+      doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Ahorro Anual Proyectado: ${formatCurrency(resultado.ahorroAnual)}`, margin + 6, y + 10);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Retorno ROI: +${resultado.roiPorcentual}% • Payback estimado: ${resultado.paybackMeses} meses`, margin + 6, y + 18);
+      doc.text(`Pérdida Anual Oculta sin intervención: ${formatCurrency(resultado.costoProblemaAnual)}`, margin + 6, y + 25);
+
+      y += 36;
+
+      const runAutoTable = (options: any) => {
+        try {
+          if (typeof autoTable === 'function') {
+            autoTable(doc, options);
+          } else if (typeof (doc as any).autoTable === 'function') {
+            (doc as any).autoTable(options);
+          }
+        } catch (e) {
+          console.warn('AutoTable fallback:', e);
+        }
+      };
+
+      runAutoTable({
+        startY: y,
+        head: [['Factor de Pérdida Oculta', 'Monto Anual (USD)', 'Impacto Organizacional']],
+        body: [
+          ['Rotación y Reemplazo de Personal', formatCurrency(resultado.costoRotacion), 'Costo de Reclutamiento & Onboarding'],
+          ['Desgaste Emocional & Ausentismo', formatCurrency(resultado.costoAusentismo), 'Pérdida de Capacidad Cognitiva'],
+          ['Brechas de Liderazgo & Desconexión', formatCurrency(resultado.costoProductividad), 'Ineficiencia en Procesos y Proyectos'],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [NAVY[0], NAVY[1], NAVY[2]], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8.5 },
+      });
+
+      // Footer
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+      doc.setTextColor(SLATE[0], SLATE[1], SLATE[2]);
+      doc.setFontSize(8);
+      doc.text('ACRUX Consultores S.A.S. • NIT 900.230.435-1 • acrux.life', margin, pageHeight - 6);
+      doc.text('Página 1 de 1', pageWidth - margin, pageHeight - 6, { align: 'right' });
+
+      doc.save(`Auditoria_ROI_ACRUX_${resultado.sector.replace(/\s+/g, '_')}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Resultado */}
-      <section className="bg-primary text-white py-16 md:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary/50" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-primary text-sm font-bold rounded-full mb-6">
+    <div className="min-h-screen bg-slate-50 font-sans space-y-8 pb-16">
+      {/* Hero Header */}
+      <section className="bg-gradient-to-br from-[#0D111A] via-[#1B2A4A] to-[#0D111A] text-white py-16 sm:py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto text-center space-y-4 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/20 border border-accent/30 text-accent font-bold text-xs uppercase tracking-wider">
             <TrendingUp className="w-4 h-4" />
-            Tu Análisis ROI Personalizado
-          </span>
-          <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Resultados para <span className="text-accent">{resultado.sector}</span>
+            Análisis de Retorno de Inversión • ACRUX
+          </div>
+
+          <h1 className="font-display text-3xl sm:text-5xl font-black text-white tracking-tight">
+            Resultados de Auditoría: <span className="text-accent">{resultado.sector}</span>
           </h1>
-          <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Organización {resultado.tamano.toLowerCase()} · Problema: {resultado.problema.toLowerCase()} · Inversión: {resultado.inversion}
+
+          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto">
+            Simulación para equipo de <strong className="text-white">{resultado.empleados} colaboradores</strong> con masa salarial ajustada.
           </p>
         </div>
       </section>
 
-      {/* Métricas Principales */}
-      <section className="py-12 -mt-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <MetricCard
-              icon={<DollarSign className="w-8 h-8" />}
-              label="Inversión Requerida"
-              value={formatCurrency(resultado.montoInversion)}
-              subtitle={resultado.duracion}
-              color="bg-blue-500"
-            />
-            <MetricCard
-              icon={<TrendingUp className="w-8 h-8" />}
-              label="ROI Estimado"
-              value={`${resultado.roiPorcentual}%`}
-              subtitle="A 12 meses"
-              color={`bg-gradient-to-r ${roiBg.replace('bg-', 'from-').replace('border-', 'to-')}`}
-              valueClass={roiColor}
-            />
-            <MetricCard
-              icon={<Clock className="w-8 h-8" />}
-              label="Payback"
-              value={`${resultado.paybackMeses} meses`}
-              subtitle="Recuperación de inversión"
-              color="bg-green-500"
-            />
-            <MetricCard
-              icon={<Target className="w-8 h-8" />}
-              label="Ahorro Anual"
-              value={formatCurrency(resultado.ahorroAnual)}
-              subtitle="vs costo actual del problema"
-              color="bg-purple-500"
-            />
+      {/* KPI Cards Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-200/80 space-y-2 text-left">
+            <span className="text-xs font-bold text-slate-400 uppercase font-mono">Pérdida Anual Oculta</span>
+            <div className="text-3xl font-black text-red-500 font-mono">{formatCurrency(resultado.costoProblemaAnual)}</div>
+            <p className="text-xs text-slate-500">Pérdida estimada sin intervención cultural.</p>
           </div>
 
-          {/* Detalle del Análisis */}
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Resumen Ejecutivo */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl shadow-soft p-8 border-t-4 border-primary">
-                <h2 className="font-display text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                  <Building2 className="w-6 h-6" />
-                  Resumen Ejecutivo
-                </h2>
-                <div className="prose text-secondary max-w-none">
-                  <p className="mb-4">
-                    Basado en tu perfil (<strong>{resultado.tamano.toLowerCase()}</strong> en sector <strong>{resultado.sector}</strong>)
-                    con el problema principal de <strong>{resultado.problema.toLowerCase()}</strong>,
-                    el costo anual estimado de no actuar es de <strong className="text-primary">{formatCurrency(resultado.costoProblemaAnual)}</strong>.
-                  </p>
-                  <p className="mb-4">
-                    Implementando <strong>{resultado.inversion.toLowerCase()}</strong> ({formatCurrency(resultado.montoInversion)} / {resultado.duracion}),
-                    proyectamos un ahorro anual de <strong className="text-primary">{formatCurrency(resultado.ahorroAnual)}</strong>
-                    (reducción del ~35% en costos asociados al problema), generando un
-                    <strong className={roiColor}>{resultado.roiPorcentual >= 0 ? '+' : ''}{resultado.roiPorcentual}% ROI</strong>
-                    a 12 meses con payback en <strong>{resultado.paybackMeses} meses</strong>.
-                  </p>
-                  <div className={`p-4 rounded-lg border ${roiBg}`}>
-                    <p className="font-medium">
-                      <strong>Conclusión:</strong>{' '}
-                      {resultado.roiPorcentual >= 100
-                        ? 'Inversión altamente rentable. Recuperas tu inversión en menos de un año y generas valor significativo.'
-                        : resultado.roiPorcentual >= 0
-                        ? 'Inversión rentable con payback razonable. Valor positivo a mediano plazo.'
-                        : 'ROI negativo a 12 meses. Requiere horizonte mayor a 18-24 meses para ver retorno positivo.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-200/80 space-y-2 text-left">
+            <span className="text-xs font-bold text-slate-400 uppercase font-mono">Ahorro Anual Proyectado</span>
+            <div className="text-3xl font-black text-emerald-600 font-mono">{formatCurrency(resultado.ahorroAnual)}</div>
+            <p className="text-xs text-slate-500">Recuperación estimada con metodología ACRUX.</p>
+          </div>
 
-              {/* Proyección Temporal */}
-              <div className="bg-white rounded-2xl shadow-soft p-8 border-t-4 border-accent">
-                <h2 className="font-display text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-accent" />
-                  Proyección de Valor Acumulado
-                </h2>
-                <div className="space-y-4">
-                  {[6, 12, 24, 36].map(mes => {
-                    const ahorroMes = resultado.ahorroAnual / 12
-                    const valorAcumulado = ahorroMes * mes - resultado.montoInversion
-                    const esPositivo = valorAcumulado >= 0
-                    return (
-                      <div key={mes} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <span className="font-bold text-primary">{mes}M</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-primary">Mes {mes}</p>
-                            <p className="text-sm text-secondary">Ahorro acumulado: {formatCurrency(ahorroMes * mes)}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-display text-xl font-bold ${esPositivo ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(valorAcumulado)}
-                          </p>
-                          <p className="text-sm text-secondary">{esPositivo ? 'Ganancia neta' : 'Inversión neta'}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+          <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-200/80 space-y-2 text-left">
+            <span className="text-xs font-bold text-slate-400 uppercase font-mono">ROI Proyectado</span>
+            <div className="text-3xl font-black text-accent font-mono">+{resultado.roiPorcentual}%</div>
+            <p className="text-xs text-slate-500">Retorno sobre la inversión estimada.</p>
+          </div>
 
-              {/* Benchmarking */}
-              <div className="bg-white rounded-2xl shadow-soft p-8 border-t-4 border-secondary">
-                <h2 className="font-display text-xl font-bold text-primary mb-6 flex items-center gap-2">
-                  <Users className="w-6 h-6" />
-                  Benchmarking Sectorial
-                </h2>
-                <p className="text-secondary mb-6">
-                  Comparativa con organizaciones similares que completaron transformación ACRUX:
-                </p>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <BenchmarkCard label="ROI Promedio Sector" value={`${Math.round(resultado.roiPorcentual * 1.15)}%`} diff="+15% vs tu estimación" />
-                  <BenchmarkCard label="Tiempo Payback Promedio" value={`${Math.max(3, Math.round(resultado.paybackMeses * 0.8))} meses`} diff={`${Math.round((resultado.paybackMeses - resultado.paybackMeses * 0.8) * 10) / 10}M más rápido`} />
-                  <BenchmarkCard label="Mejora Engagement" value="+42%" diff="Promedio post-transformación" />
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar Acciones */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl shadow-soft p-6 border-t-4 border-accent sticky top-24">
-                <h3 className="font-display text-lg font-bold text-primary mb-4">Próximos Pasos</h3>
-                <div className="space-y-3">
-                  <Link
-                    to="https://calendly.com/acrux-consultores"
-                    target="_blank"
-                    rel="noopener"
-                    className="block w-full bg-primary text-white py-3 rounded-lg font-bold text-center hover:bg-primary/90 transition-colors"
-                  >
-                    Agendar validación estratégica (gratis)
-                  </Link>
-                  <Link
-                    to="https://acrux.life/contacto"
-                    className="block w-full border-2 border-primary text-primary py-3 rounded-lg font-bold text-center hover:bg-primary/5 transition-colors"
-                  >
-                    Recibir reporte completo por email
-                  </Link>
-                  <button
-                    onClick={() => downloadReport(resultado)}
-                    className="block w-full bg-accent text-primary py-3 rounded-lg font-bold text-center hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-5 h-5" />
-                    Descargar PDF ejecutivo
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-soft p-6 border-t-4 border-secondary sticky top-24" style={{ top: '20rem' }}>
-                <h3 className="font-display text-lg font-bold text-primary mb-4">Compartir Resultados</h3>
-                <p className="text-secondary text-sm mb-4">Comparte este análisis con tu equipo directivo:</p>
-                <div className="flex gap-2">
-                  <button className="flex-1 border border-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1">
-                    <Share2 className="w-4 h-4" />
-                    LinkedIn
-                  </button>
-                  <button className="flex-1 border border-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1">
-                    <Share2 className="w-4 h-4" />
-                    Email
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-primary to-secondary text-white rounded-2xl p-6 sticky top-24" style={{ top: '32rem' }}>
-                <h3 className="font-display text-lg font-bold mb-3">¿Necesitas más precisión?</h3>
-                <p className="text-white/90 text-sm mb-4">
-                  Esta calculadora usa benchmarks. Un diagnóstico real (DIGITAL-H / PULSO-H) usa datos de TU organización.
-                </p>
-                <div className="flex flex-col gap-2">
-                  <Link to="https://acrux.life/digital-h/" target="_blank" rel="noopener" className="bg-white/10 border border-white/20 py-2 rounded-lg text-center text-sm hover:bg-white/20 transition-colors">
-                    Diagnóstico Madurez Digital (DIGITAL-H)
-                  </Link>
-                  <Link to="https://acrux.life/pulso-h/" target="_blank" rel="noopener" className="bg-white/10 border border-white/20 py-2 rounded-lg text-center text-sm hover:bg-white/20 transition-colors">
-                    Diagnóstico Clima Laboral (PULSO-H)
-                  </Link>
-                </div>
-              </div>
-            </div>
+          <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-200/80 space-y-2 text-left">
+            <span className="text-xs font-bold text-slate-400 uppercase font-mono">Payback Estimado</span>
+            <div className="text-3xl font-black text-primary-700 font-mono">{resultado.paybackMeses} meses</div>
+            <p className="text-xs text-slate-500">Tiempo estimado de recupero de inversión.</p>
           </div>
         </div>
       </section>
 
-      {/* Footer CTA */}
-      <section className="bg-primary text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-display text-2xl md:text-3xl font-bold mb-3">Transformemos tu organización juntos</h2>
-          <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-            Los números son claros. La transformación organizacional bien hecha no es un gasto, es la mejor inversión que puedes hacer.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="https://calendly.com/acrux-consultores"
-              target="_blank"
-              rel="noopener"
-              className="bg-accent text-primary px-6 py-3 rounded-lg font-bold hover:bg-accent/90 transition-colors"
-            >
-              Agendar sesión estratégica
-            </Link>
-            <Link
-              to="https://acrux.life/contacto"
-              className="border-2 border-white text-white px-6 py-3 rounded-lg font-bold hover:bg-white/10 transition-colors"
-            >
-              Contactar
-            </Link>
+      {/* Breakdown & CTAs */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Executive Breakdown */}
+          <div className="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 text-left space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h2 className="font-display text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <Building2 className="w-6 h-6 text-primary-600" />
+                Resumen Ejecutivo de la Auditoría
+              </h2>
+            </div>
+
+            <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+              <p>
+                Para una organización de <strong className="text-slate-900 font-bold">{resultado.empleados} colaboradores</strong> en el sector <strong className="text-slate-900 font-bold">{resultado.sector}</strong>, el costo anual estimado derivado de rotación, ausentismo y brechas de liderazgo asciende a <strong className="text-red-600 font-bold font-mono">{formatCurrency(resultado.costoProblemaAnual)}</strong>.
+              </p>
+
+              <p>
+                Implementando un programa de transformación cultural con acompañamiento estratégico de ACRUX, proyectamos un ahorro anual de <strong className="text-emerald-700 font-bold font-mono">{formatCurrency(resultado.ahorroAnual)}</strong>, generando un retorno de <strong className="text-primary-700 font-bold font-mono">+{resultado.roiPorcentual}% ROI</strong> con recupero en <strong className="text-slate-900 font-bold">{resultado.paybackMeses} meses</strong>.
+              </p>
+
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-700">
+                  <strong className="text-slate-900 font-bold">Conclusión Directiva:</strong> La inversión en la salud de los sistemas humanos de tu empresa genera retornos financieros directos y medibles a corto y mediano plazo.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action CTAs */}
+          <div className="bg-gradient-to-br from-[#0D111A] via-[#1B2A4A] to-[#0D111A] text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-accent/30 text-left space-y-6 flex flex-col justify-between">
+            <div className="space-y-3">
+              <span className="px-3 py-1 rounded-full bg-accent/20 text-accent font-bold text-xs uppercase tracking-wider font-mono">
+                Próximo Paso Recomendado
+              </span>
+
+              <h3 className="text-xl font-bold font-display text-white">Agendá una Sesión de Validación Estratégica</h3>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Presentá esta simulación financiera a los expertos de ACRUX para calibrar los datos específicos de tu nómina.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-4">
+              <button
+                onClick={downloadPDFReport}
+                disabled={isGeneratingPDF}
+                className="w-full py-3.5 bg-white text-primary-900 font-bold text-xs sm:text-sm rounded-xl hover:bg-slate-100 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              >
+                <Download className="w-4 h-4 text-primary-600" />
+                <span>{isGeneratingPDF ? 'Generando PDF...' : 'Descargar Informe PDF'}</span>
+              </button>
+
+              <a
+                href="https://acrux.life/agendar"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 bg-accent text-primary-900 font-bold text-xs sm:text-sm rounded-xl hover:bg-accent-dark transition-all flex items-center justify-center gap-2 text-center shadow-md"
+              >
+                <User className="w-4 h-4" />
+                <span>Agendar Sesión con Consultor</span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
     </div>
-  )
-}
-
-// Componentes auxiliares
-function MetricCard({ icon, label, value, subtitle, color, valueClass = 'text-primary' }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-soft p-6 border-t-4 border-primary">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white ${color}`}>
-          {icon}
-        </div>
-      </div>
-      <p className="metric-label">{label}</p>
-      <p className={`metric-value ${valueClass}`}>{value}</p>
-      <p className="text-xs text-secondary/60">{subtitle}</p>
-    </div>
-  )
-}
-
-function BenchmarkCard({ label, value, diff }) {
-  return (
-    <div className="bg-gray-50 rounded-xl p-4">
-      <p className="text-xs text-secondary/70 uppercase tracking-wide mb-1">{label}</p>
-      <p className="font-display text-2xl font-bold text-primary">{value}</p>
-      <p className="text-xs text-green-600 font-medium">{diff}</p>
-    </div>
-  )
-}
-
-function downloadReport(resultado) {
-  const content = `
-REPORTE EJECUTIVO ROI - TRANSFORMACIÓN ORGANIZACIONAL
-=====================================================
-Generado: ${new Date().toLocaleDateString('es-CO')}
-Organización: ${resultado.tamano} - ${resultado.sector}
-Problema: ${resultado.problema}
-Inversión: ${resultado.inversion}
-
-MÉTRICAS CLAVE
---------------
-Inversión Requerida: ${formatCurrency(resultado.montoInversion)} (${resultado.duracion})
-ROI Estimado (12M): ${resultado.roiPorcentual}%
-Payback: ${resultado.paybackMeses} meses
-Ahorro Anual Proyectado: ${formatCurrency(resultado.ahorroAnual)}
-Costo Actual del Problema: ${formatCurrency(resultado.costoProblemaAnual)}
-
-PROYECCIÓN TEMPORAL
--------------------
-Mes 6:  ${formatCurrency((resultado.ahorroAnual/12)*6 - resultado.montoInversion)}
-Mes 12: ${formatCurrency((resultado.ahorroAnual/12)*12 - resultado.montoInversion)}
-Mes 24: ${formatCurrency((resultado.ahorroAnual/12)*24 - resultado.montoInversion)}
-Mes 36: ${formatCurrency((resultado.ahorroAnual/12)*36 - resultado.montoInversion)}
-
-PRÓXIMOS PASOS RECOMENDADOS
----------------------------
-1. Agendar sesión de validación estratégica (gratis)
-2. Realizar diagnóstico DIGITAL-H / PULSO-H para datos reales
-3. Diseñar hoja de ruta de transformación a medida
-4. Definir KPIs y plan de medición de impacto
-
-Contacto: hola@acrux.life | https://acrux.life
-ACRUX Consultores - Transformación Organizacional desde Psicología y Trabajo Social
-  `.trim()
-
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `ROI-ACRUX-${resultado.sector}-${Date.now()}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
+  );
 }
