@@ -112,12 +112,12 @@ export default function Resultado() {
 
       y += 36;
 
-      const runAutoTable = (options: any) => {
+      const runAutoTable = (options) => {
         try {
           if (typeof autoTable === 'function') {
             autoTable(doc, options);
-          } else if (typeof (doc as any).autoTable === 'function') {
-            (doc as any).autoTable(options);
+          } else if (typeof doc.autoTable === 'function') {
+            doc.autoTable(options);
           }
         } catch (e) {
           console.warn('AutoTable fallback:', e);
