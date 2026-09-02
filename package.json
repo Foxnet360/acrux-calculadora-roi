@@ -10,13 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^6.30.0",
-    "lucide-react": "^0.563.0",
+    "@acrux/api-client": "workspace:*",
     "@acrux/design-tokens": "workspace:*",
     "@acrux/ui": "workspace:*",
-    "@acrux/api-client": "workspace:*"
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "lucide-react": "^0.563.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.30.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",
